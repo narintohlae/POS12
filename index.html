@@ -1333,7 +1333,7 @@ input[type="radio"].radio, .radio{ width:16px; height:16px; border:var(--border)
 <button type="button" id="clear-range-db-btn" class="clear-cart" style="background-color: var(--danger-color);">ล้างเฉพาะช่วงเวลาที่เลือก (ฐานข้อมูล)</button>
 </div> </div> <div class="modal-footer"> <button type="button" id="cancel-clear-btn" style="background-color: var(--secondary-color);">ยกเลิก</button> </div> </div> </div>
 <div id="info-modal" class="modal-overlay"> <div class="modal-content"> <div class="modal-header"><h3 id="info-modal-title" style="color: var(--primary-color);"></h3></div> <div class="modal-body"><p id="info-modal-text"></p></div> <div class="modal-footer" style="justify-content:center"><button type="button" id="info-modal-ok-btn">ตกลง (Enter/ESC)</button></div> </div> </div>
-<div id="product-mgmt-modal" class="modal-overlay"> <div class="modal-content"> <div class="modal-toolbar"> <h2>จัดการสินค้า</h2> <div class="input-with-icon" style="width: 300px;"> <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span> <input type="text" id="product-search-input" placeholder="     ค้นหาสินค้า..."> </div> <button type="button" id="add-new-product-btn" class="finish-sale"> <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> เพิ่มสินค้าใหม่ </button> </div> <div id="product-list-container"></div> <div class="modal-footer"> <div id="product-list-pagination"></div> <button type="button" id="close-product-mgmt-btn" style="background-color: var(--secondary-color);">ปิด</button> </div> </div> </div>
+<div id="product-mgmt-modal" class="modal-overlay"> <div class="modal-content"> <div class="modal-toolbar"> <h2>จัดการสินค้า</h2> <div class="input-with-icon" style="width: 300px;"> <span class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span> <input type="text" id="product-search-input" placeholder="ค้นหาสินค้า..."> </div> <button type="button" id="add-new-product-btn" class="finish-sale"> <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> เพิ่มสินค้าใหม่ </button> </div> <div id="product-list-container"></div> <div class="modal-footer"> <div id="product-list-pagination"></div> <button type="button" id="close-product-mgmt-btn" style="background-color: var(--secondary-color);">ปิด</button> </div> </div> </div>
 <div id="product-editor-modal" class="modal-overlay"> <div class="modal-content"> <form id="product-editor-form"> <div class="modal-header"><h3 id="product-editor-title">เพิ่มสินค้าใหม่</h3></div> <div class="form-content-area"> <div class="form-column-left"> <h4 style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">ข้อมูลสินค้าหลัก</h4> <div class="form-group"> <label for="product-code">รหัสสินค้า (ห้ามซ้ำ)</label> <input type="text" id="product-code" required> </div> <div class="form-group"> <label for="product-name">ชื่อสินค้า</label> <input type="text" id="product-name" required> </div> <div class="form-group"> <label for="product-category">หมวดหมู่ (ไม่บังคับ)</label> <input type="text" id="product-category"> </div> <div class="form-group"> <label for="product-base-unit">หน่วยเล็กที่สุด (สำหรับนับสต็อก)</label> <input type="text" id="product-base-unit" placeholder="เช่น ชิ้น, ขวด, กรัม" required> </div> <div class="form-group"> <label for="product-stock">จำนวนสต็อก (ตามหน่วยเล็กที่สุด)</label> <input type="number" id="product-stock" value="0" required>
 <div class="form-group">
   <label style="display:flex; align-items:center; gap:.5rem;">
@@ -1361,13 +1361,13 @@ input[type="radio"].radio, .radio{ width:16px; height:16px; border:var(--border)
     } else {
         console.warn("Firebase config not found in environment. Using local fallback. PLEASE REPLACE PLACEHOLDER VALUES.");
         firebaseConfig = {
-  apiKey: "AIzaSyCBGek-Xl3uuPnS0Qv2O86HOz819VlsspI",
-  authDomain: "pos12-91ebd.firebaseapp.com",
-  projectId: "pos12-91ebd",
-  storageBucket: "pos12-91ebd.firebasestorage.app",
-  messagingSenderId: "889126754372",
-  appId: "1:889126754372:web:c0738116e7cc5daeaec411",
-  measurementId: "G-RTDHC58EJM"
+  apiKey: "AIzaSyBUcwyoikpRzI8foXH7RTQtb6XM_pbv-sA",
+  authDomain: "pos-11.firebaseapp.com",
+  projectId: "pos-11",
+  storageBucket: "pos-11.firebasestorage.app",
+  messagingSenderId: "508214804076",
+  appId: "1:508214804076:web:fbc5c6d2be5395a56b2249",
+  measurementId: "G-PVL0HE9371"
         };
     }
 
@@ -1835,12 +1835,12 @@ document.getElementById('info-modal-ok-btn').addEventListener('click', this.hide
         this.state.autoImportInterval = setInterval(async () => {
             console.log('Auto-Import: Checking for Google Script updates...');
             try {
-const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().getTime());
+                const response = await fetch(this.config.googleSheetUrl);
                 if (!response.ok) return;
 
-const jsonData = await response.json();
-const dataToHash = jsonData.data || jsonData; // [แก้ไข] แกะข้อมูลออกมาเช็คก่อน
-const currentHash = await this._normalizeAndHashData(dataToHash); // ส่งตัวที่แกะแล้วไป Hash
+                const jsonData = await response.json();
+       
+                 const currentHash = await this._normalizeAndHashData(jsonData);
 
                 if (this.state.lastSheetHash && this.state.lastSheetHash !== currentHash) {
                     console.log('Auto-Import: Detected changes. Importing...');
@@ -1860,13 +1860,13 @@ const currentHash = await this._normalizeAndHashData(dataToHash); // ส่ง�
         }, intervalMinutes * 60 * 1000);
         (async () => {
             try {
-const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().getTime());
-if (response.ok) {
-    const jsonData = await response.json();
-    const dataToHash = jsonData.data || jsonData; // [แก้ไข] แกะข้อมูลออกมาเช็คก่อน
-    this.state.lastSheetHash = await this._normalizeAndHashData(dataToHash);
-    console.log('Auto-Import: Polling started. Initial hash captured.');
-}
+                const response = await fetch(this.config.googleSheetUrl);
+                if (response.ok) {
+                    const jsonData = await response.json();
+                    this.state.lastSheetHash = 
+                    await this._normalizeAndHashData(jsonData);
+                    console.log('Auto-Import: Polling started. Initial hash captured.');
+                }
             } catch (e) {
                 console.error('Auto-Import initial fetch error:', e);
             }
@@ -1891,7 +1891,7 @@ async importFromGoogleSheet(isAutomatic = false) {
         }
 
         try {
-const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().getTime());
+            const response = await fetch(this.config.googleSheetUrl);
             if (!response.ok) {
                 throw new Error(`Network response was not ok, status: ${response.status}`);
             }
@@ -2601,6 +2601,9 @@ const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().get
             }
             const stockInThisUnit = productUnit.stockInBaseUnits / productUnit.pricingUnit.conversionFactor;
             let itemInfoHTML = `<strong>${productUnit.display}</strong>`;
+            if (!this.state.isRestrictedMode) {
+                itemInfoHTML += ` <span class="sub-text">(คงเหลือ: ${stockInThisUnit.toFixed(2)} ${productUnit.pricingUnit.unitName})(ต้นทุน: ${(productUnit.pricingUnit.cost || 0).toFixed(2)})</span>`;
+            }
             li.innerHTML = `<div class="col-seq">${index + 1}</div><div class="col-name">${itemInfoHTML}</div><div class="col-qty"><input type="number" class="item-input" value="${quantity}" onchange="POS_APP.editItemQuantity(${index}, this.value)" onfocus="this.select()" onkeydown="if(event.key === 'Enter') { event.preventDefault(); document.getElementById('discount-input').focus(); document.getElementById('discount-input').select(); }"></div><div class="col-price"><input type="text" class="item-input" value="${pricePerUnit.toFixed(2)}" disabled></div><div class="col-total"><input type="text" class="item-input" value="${totalForItem.toFixed(2)}" onchange="POS_APP.editItemTotal(${index}, this.value)" onfocus="this.select()"></div><div class="col-delete"><button type="button" class="delete-item-btn" onclick="POS_APP.deleteItemFromCart(${index})"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div>`;
             cartItemsElement.appendChild(li);
         });
@@ -3889,5 +3892,3 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 })();
 </script>
-
-
