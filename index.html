@@ -1835,12 +1835,13 @@ document.getElementById('info-modal-ok-btn').addEventListener('click', this.hide
         this.state.autoImportInterval = setInterval(async () => {
             console.log('Auto-Import: Checking for Google Script updates...');
             try {
+                // เติม ?t=เวลาปัจจุบัน เพื่อบังคับให้ไม่ใช้ Cache
 const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().getTime());
                 if (!response.ok) return;
 
-const jsonData = await response.json();
-const dataToHash = jsonData.data || jsonData; // [แก้ไข] แกะข้อมูลออกมาเช็คก่อน
-const currentHash = await this._normalizeAndHashData(dataToHash); // ส่งตัวที่แกะแล้วไป Hash
+                const jsonData = await response.json();
+       
+                 const currentHash = await this._normalizeAndHashData(jsonData);
 
                 if (this.state.lastSheetHash && this.state.lastSheetHash !== currentHash) {
                     console.log('Auto-Import: Detected changes. Importing...');
@@ -1860,13 +1861,14 @@ const currentHash = await this._normalizeAndHashData(dataToHash); // ส่ง�
         }, intervalMinutes * 60 * 1000);
         (async () => {
             try {
+                // เติม ?t=เวลาปัจจุบัน เพื่อบังคับให้ไม่ใช้ Cache
 const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().getTime());
-if (response.ok) {
-    const jsonData = await response.json();
-    const dataToHash = jsonData.data || jsonData; // [แก้ไข] แกะข้อมูลออกมาเช็คก่อน
-    this.state.lastSheetHash = await this._normalizeAndHashData(dataToHash);
-    console.log('Auto-Import: Polling started. Initial hash captured.');
-}
+                if (response.ok) {
+                    const jsonData = await response.json();
+                    this.state.lastSheetHash = 
+                    await this._normalizeAndHashData(jsonData);
+                    console.log('Auto-Import: Polling started. Initial hash captured.');
+                }
             } catch (e) {
                 console.error('Auto-Import initial fetch error:', e);
             }
@@ -1891,6 +1893,7 @@ async importFromGoogleSheet(isAutomatic = false) {
         }
 
         try {
+            // เติม ?t=เวลาปัจจุบัน เพื่อบังคับให้ไม่ใช้ Cache
 const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().getTime());
             if (!response.ok) {
                 throw new Error(`Network response was not ok, status: ${response.status}`);
@@ -2601,9 +2604,6 @@ const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().get
             }
             const stockInThisUnit = productUnit.stockInBaseUnits / productUnit.pricingUnit.conversionFactor;
             let itemInfoHTML = `<strong>${productUnit.display}</strong>`;
-            // if (!this.state.isRestrictedMode) {
-                itemInfoHTML += ` <span class="sub-text">(คงเหลือ: ${stockInThisUnit.toFixed(2)} ${productUnit.pricingUnit.unitName})(ต้นทุน: ${(productUnit.pricingUnit.cost || 0).toFixed(2)})</span>`;
-            }
             li.innerHTML = `<div class="col-seq">${index + 1}</div><div class="col-name">${itemInfoHTML}</div><div class="col-qty"><input type="number" class="item-input" value="${quantity}" onchange="POS_APP.editItemQuantity(${index}, this.value)" onfocus="this.select()" onkeydown="if(event.key === 'Enter') { event.preventDefault(); document.getElementById('discount-input').focus(); document.getElementById('discount-input').select(); }"></div><div class="col-price"><input type="text" class="item-input" value="${pricePerUnit.toFixed(2)}" disabled></div><div class="col-total"><input type="text" class="item-input" value="${totalForItem.toFixed(2)}" onchange="POS_APP.editItemTotal(${index}, this.value)" onfocus="this.select()"></div><div class="col-delete"><button type="button" class="delete-item-btn" onclick="POS_APP.deleteItemFromCart(${index})"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div>`;
             cartItemsElement.appendChild(li);
         });
@@ -3892,3 +3892,4 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 })();
 </script>
+
