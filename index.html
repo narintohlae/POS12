@@ -1361,13 +1361,13 @@ input[type="radio"].radio, .radio{ width:16px; height:16px; border:var(--border)
     } else {
         console.warn("Firebase config not found in environment. Using local fallback. PLEASE REPLACE PLACEHOLDER VALUES.");
         firebaseConfig = {
-  apiKey: "AIzaSyBUcwyoikpRzI8foXH7RTQtb6XM_pbv-sA",
-  authDomain: "pos-11.firebaseapp.com",
-  projectId: "pos-11",
-  storageBucket: "pos-11.firebasestorage.app",
-  messagingSenderId: "508214804076",
-  appId: "1:508214804076:web:fbc5c6d2be5395a56b2249",
-  measurementId: "G-PVL0HE9371"
+  apiKey: "AIzaSyCBGek-Xl3uuPnS0Qv2O86HOz819VlsspI",
+  authDomain: "pos12-91ebd.firebaseapp.com",
+  projectId: "pos12-91ebd",
+  storageBucket: "pos12-91ebd.firebasestorage.app",
+  messagingSenderId: "889126754372",
+  appId: "1:889126754372:web:c0738116e7cc5daeaec411",
+  measurementId: "G-RTDHC58EJM"
         };
     }
 
@@ -1945,41 +1945,39 @@ async importFromGoogleSheet(isAutomatic = false) {
                         const sheetCost = parseFloat(row['ต้นทุน']);
                         const sheetPrice = parseFloat(row['ราคา']);
 
-// 1. อัปเดตต้นทุน (Cost) - อันนี้ยอมให้อัปเดตจาก Sheet เสมอ
+                        // 1. อัปเดตต้นทุน (Cost)
                         if (!isNaN(sheetCost)) {
                             targetUnit.cost = sheetCost;
                         }
 
-                        // 2. Logic การอัปเดตราคาแบบฉลาด (Smart Update)
+                        // 2. Logic การอัปเดตราคา
                         if (!isNaN(sheetPrice)) {
-                            // หาข้อมูลราคาขายปลีกปัจจุบัน (Tier 1 / ซื้อ 1 ชิ้น)
-                            if (!targetUnit.priceTiers) targetUnit.priceTiers = [];
-                            let retailTier = targetUnit.priceTiers.find(t => t.quantity === 1);
-                            const currentRetailPrice = retailTier ? retailTier.price : 0;
-                            const storedDefaultPrice = targetUnit.defaultPrice || 0;
+                            // 2.1 อัปเดต Default Price (ราคาอ้างอิง) เสมอ
+                            targetUnit.defaultPrice = sheetPrice;
 
-                            // เช็คเงื่อนไขที่ 1: มีการตั้งราคาขายส่ง (หลายระดับ) หรือไม่?
-                            const hasWholesaleTiers = targetUnit.priceTiers.some(t => t.quantity > 1);
-                            
-                            // เช็คเงื่อนไขที่ 2: ราคาปัจจุบัน ต่างจากราคา Default เดิมหรือไม่?
-                            // (ถ้าต่างกัน แปลว่า user เคยแก้ราคาเองใน POS -> ถือว่ามีการตั้งค่าเพิ่ม)
-                            const isPriceManuallyChanged = Math.abs(currentRetailPrice - storedDefaultPrice) > 0.01;
+                            // 2.2 ตรวจสอบว่ามี "ราคาขายอื่นๆ" (ขายส่ง/Tier > 1) หรือไม่?
+                            const hasWholesaleTiers = targetUnit.priceTiers && targetUnit.priceTiers.some(t => t.quantity > 1);
 
-                            // ตัดสินใจ: จะอัปเดตทับ ก็ต่อเมื่อ "ไม่มีราคาขายส่ง" และ "ไม่ได้แก้ราคาเอง"
-                            if (!hasWholesaleTiers && !isPriceManuallyChanged) {
-                                // อัปเดตทั้งราคาอ้างอิง และ ราคาขายจริง
-                                targetUnit.defaultPrice = sheetPrice;
+                            if (!hasWholesaleTiers) {
+                                // --- กรณี A: ไม่มีราคาขายส่ง (สินค้าราคาเดียว) ---
+                                // ให้ "เปลี่ยนราคาขายจริง" (Tier 1) ตาม Sheet ได้เลย
+                                if (!targetUnit.priceTiers) targetUnit.priceTiers = [];
                                 
+                                const retailTier = targetUnit.priceTiers.find(t => t.quantity === 1);
                                 if (retailTier) {
                                     retailTier.price = sheetPrice;
                                 } else {
-                                    // กันเหนียว กรณีไม่มี Tier 1
                                     targetUnit.priceTiers.push({ quantity: 1, price: sheetPrice });
+                                    // จัดเรียงใหม่ให้ถูกต้อง
                                     targetUnit.priceTiers.sort((a, b) => b.quantity - a.quantity);
                                 }
+                            } else {
+                                // --- กรณี B: มีราคาขายส่ง (Custom Price) ---
+                                // "ไม่ทำอะไรกับ PriceTiers" 
+                                // (รักษา Tier 1 เดิม และ Tier ขายส่งเดิม ไว้ตามที่ตั้งค่าเอง)
                             }
-                            // else: ถ้าเข้าข่ายเงื่อนไขใดเงื่อนไขหนึ่ง (มีขายส่ง หรือ ราคาถูกแก้) -> ข้ามการอัปเดตราคา (ใช้ค่าเดิมใน POS)
                         }
+                    }
 
                     batch.update(docRef, {
                         stockInBaseUnits: parseInt(row['คงเหลือ'], 10) || productData.stockInBaseUnits,
