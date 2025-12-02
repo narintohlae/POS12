@@ -1983,6 +1983,7 @@ const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().get
                     }
 
                     batch.update(docRef, {
+                        productName: row['ชื่อการค้า'] ? String(row['ชื่อการค้า']).trim() : productData.productName,
                         stockInBaseUnits: parseInt(row['คงเหลือ'], 10) || productData.stockInBaseUnits,
                         pricingUnits: productData.pricingUnits,
                         updatedAt: now
@@ -3892,4 +3893,5 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 })();
 </script>
+
 
