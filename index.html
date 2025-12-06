@@ -1571,8 +1571,8 @@ updateAuthStatus(){
         });
     },
     
-async start() {
-        // [LOGIN] เชื่อมต่อ Events และกู้คืน Session (โค้ดเดิม)
+    async start() {
+        // [LOGIN] wire up events and restore session
         const __loginSubmit = document.getElementById('login-submit-btn');
         if (__loginSubmit) __loginSubmit.addEventListener('click', () => this.handleLogin());
         const __loginInput = document.getElementById('login-code');
@@ -1593,156 +1593,17 @@ async start() {
         const barcodeInput = document.getElementById('barcode-input');
         if (barcodeInput) this.state.basePlaceholder = barcodeInput.getAttribute('data-base-placeholder');
         this.updatePlaceholderHint();
-
-        // =========================================================
-        // ✅ [MODIFIED] ส่วนที่แก้ไข: เปลี่ยนมาใช้ Firestore Sync
-        // =========================================================
-        
-        // 1. ลบหรือ Comment บรรทัดเดิมทิ้ง: this.clearDataOnStart();
-        
-        // 2. เคลียร์ค่าในเครื่องให้ว่างก่อน
-        this.state.tabs = new Map(); 
-        
-        // 3. เริ่มฟังข้อมูล Active Tabs จาก Firestore (Real-time)
-        // ฟังก์ชันนี้จะทำหน้าที่โหลดบิลค้าง หรือสร้างบิลใหม่ให้เองถ้าไม่มี
-        this.listenForActiveTabs();  
-        
-        // =========================================================
-
+        this.clearDataOnStart();
         await this.loadReceiptSettings();
         this.filterHistoryForToday();
-        
-        // [MODIFIED] Comment บรรทัดนี้ออก เพราะ listenForActiveTabs จะจัดการสร้างบิลแรกให้เองเมื่อข้อมูลโหลดเสร็จ
-        // if (this.state.tabs.size === 0) this.addNewSaleTab();
-
+        if (this.state.tabs.size === 0) this.addNewSaleTab();
         this.listenForProducts();
         this.setupEventListeners();
         this.toggleUIVisibility();
-        this.updateAuthStatus(); 
+    this.updateAuthStatus(); 
         this.setActiveOverlay(null);
         this.focusSearchIfReady();
         this.startAutoImportPolling();
-    },
-
-// --- [NEW] 1. สร้าง Reference ไปยัง Collection สำหรับพักบิล ---
-    getActiveTabsCollectionRef() {
-        const { appId, db, api } = window.firebaseServices;
-        // ใช้ Collection ชื่อ 'activeTabs' แยกจากประวัติการขาย
-        return api.collection(db, `artifacts/${appId}/public/data/activeTabs`);
-    },
-
-    // --- [NEW] 2. ฟังก์ชันฟังการเปลี่ยนแปลงจาก Firestore (Real-time Sync) ---
-    listenForActiveTabs() {
-        const ref = this.getActiveTabsCollectionRef();
-        const { onSnapshot } = window.firebaseServices.api;
-
-        // ป้องกันการฟังซ้ำซ้อน
-        if (this.state.unsubscribeActiveTabs) this.state.unsubscribeActiveTabs();
-
-        this.state.unsubscribeActiveTabs = onSnapshot(ref, (snapshot) => {
-            // ตั้งธงว่ากำลังรับข้อมูลจาก Server (เพื่อป้องกัน Loop การบันทึกกลับ)
-            this.state.isReceivingSync = true;
-            
-            const dbTabIds = new Set();
-            let hasChanges = false;
-
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                dbTabIds.add(doc.id);
-                
-                // สร้างข้อมูล Tab จาก Server
-                const syncedTab = {
-                    name: data.name,
-                    cart: data.cart || [], 
-                    discount: data.discount || 0,
-                    isEditing: data.isEditing || false,
-                    originalFirestoreId: data.originalFirestoreId || null,
-                    updatedAt: data.updatedAt 
-                };
-
-                // อัปเดตข้อมูลในเครื่องให้ตรงกับ Server
-                this.state.tabs.set(doc.id, syncedTab);
-                hasChanges = true;
-            });
-
-            // ลบบิลในเครื่อง ถ้าบน Server ถูกลบไปแล้ว (เช่น เครื่องอื่นกดปิดบิล/จ่ายเงินแล้ว)
-            for (const [id] of this.state.tabs) {
-                if (!dbTabIds.has(id)) {
-                    this.state.tabs.delete(id);
-                    hasChanges = true;
-                    // ถ้าบิลที่เปิดอยู่โดนลบ ให้เคลียร์หน้าจอ
-                    if (this.state.activeTabId === id) {
-                        this.state.activeTabId = null;
-                        this.showInfoModal("บิลถูกปิด", "บิลนี้ถูกปิดหรือชำระเงินไปแล้วจากเครื่องอื่น", false);
-                    }
-                }
-            }
-
-            if (hasChanges) {
-                // ถ้าไม่มี active tab ให้เลือกอันแรกที่มี
-                if (!this.state.activeTabId && this.state.tabs.size > 0) {
-                    this.state.activeTabId = this.state.tabs.keys().next().value;
-                } else if (this.state.tabs.size === 0) {
-                     // ถ้าไม่เหลือบิลเลย ให้สร้างใหม่ 1 อัน (local ก่อน แล้วเดี๋ยว sync ไป)
-                     this.addNewSaleTab(); 
-                }
-                
-                this.renderTabs();
-                this.updateCartDisplay();
-            }
-            
-            // ปิดธง รับข้อมูลเสร็จแล้ว
-            this.state.isReceivingSync = false;
-        });
-    },
-
-    // --- [NEW] 3. บันทึกบิลลง Firestore (Save) ---
-    async saveTabToFirestore(tabId) {
-        // ถ้ากำลังรับข้อมูลจาก Server อยู่ ห้ามบันทึกกลับ (ป้องกัน Infinite Loop)
-        if (this.state.isReceivingSync) return;
-        
-        if (!tabId) return;
-        const tabData = this.state.tabs.get(tabId);
-        if (!tabData) return;
-
-        const { api, db } = window.firebaseServices;
-        const ref = this.getActiveTabsCollectionRef();
-        const docRef = api.doc(db, ref.path, tabId);
-
-        // เตรียมข้อมูล (Sanitize) เพื่อให้แน่ใจว่าเป็น JSON ที่ถูกต้อง
-        const dataToSave = {
-            name: tabData.name,
-            cart: tabData.cart.map(item => ({
-                cartItemId: item.cartItemId,
-                // เก็บเฉพาะข้อมูลที่จำเป็นของ ProductUnit เพื่อลดขนาด
-                productUnit: item.productUnit, 
-                quantity: item.quantity,
-                priceOverride: item.priceOverride || null
-            })),
-            discount: tabData.discount,
-            isEditing: tabData.isEditing,
-            originalFirestoreId: tabData.originalFirestoreId,
-            updatedAt: Date.now() // เก็บเวลาล่าสุด
-        };
-
-        try {
-            // ใช้ set แบบ merge เพื่ออัปเดตข้อมูล
-            await api.setDoc(docRef, dataToSave, { merge: true });
-        } catch (e) {
-            console.error("Sync tab error:", e);
-        }
-    },
-
-    // --- [NEW] 4. ลบบิลออกจาก Firestore (Delete) ---
-    async deleteTabFromFirestore(tabId) {
-        const { api, db } = window.firebaseServices;
-        const ref = this.getActiveTabsCollectionRef();
-        const docRef = api.doc(db, ref.path, tabId);
-        try {
-            await api.deleteDoc(docRef);
-        } catch (e) {
-            console.error("Delete sync error:", e);
-        }
     },
 
     setActiveOverlay(overlayName) {
@@ -2700,21 +2561,14 @@ const response = await fetch(this.config.googleSheetUrl + '?t=' + new Date().get
     },
 
 
-updateCartDisplay() {
+    updateCartDisplay() {
         const cart = this.getActiveCart();
         const discount = this.getActiveDiscount();
-        
-        // อัปเดตช่องส่วนลด
-        const discountInput = document.getElementById('discount-input');
-        if (discountInput) discountInput.value = discount || '';
-        
+        document.getElementById('discount-input').value = discount || '';
         const cartItemsElement = document.getElementById('cart-items');
-        if (cartItemsElement) cartItemsElement.innerHTML = '';
-        
+        cartItemsElement.innerHTML = '';
         if (!cart) return;
-
         let subtotal = 0;
-        
         cart.forEach((item, index) => {
             const li = document.createElement('li');
             li.dataset.cartItemId = item.cartItemId;
@@ -2723,19 +2577,21 @@ updateCartDisplay() {
             let totalForItem;
             let pricePerUnit;
 
-            // คำนวณราคา (รองรับการแก้ไขราคาด้วย)
             if (typeof priceOverride === 'number') {
-                pricePerUnit = priceOverride;
+  
+                             pricePerUnit = priceOverride;
                 totalForItem = pricePerUnit * quantity;
             } else {
                 totalForItem = this.calculateItemTotal(productUnit.pricingUnit, quantity);
                 pricePerUnit = quantity > 0 ? totalForItem / quantity : 0;
-            }
+     
+               }
             subtotal += totalForItem;
             
-            // ตรวจสอบโปรโมชั่นและเพิ่ม Tooltip
+            // [MODIFIED] Check for promotions and add listeners
             const promotions = productUnit?.pricingUnit?.priceTiers?.filter(tier => tier.quantity > 1);
             if (promotions && promotions.length > 0) {
+           
                  li.classList.add('has-promotion');
                 li.dataset.promotions = JSON.stringify(promotions);
                 li.dataset.productName = productUnit.display;
@@ -2743,54 +2599,18 @@ updateCartDisplay() {
                 li.addEventListener('mouseleave', this.hidePromotionTooltip.bind(this));
             }
 
-            [cite_start]// Highlight สีพื้นหลังถ้าจำนวนเยอะ (ตาม CSS data-qty) [cite: 192]
+
             if (quantity > 1) {
                 li.classList.add('highlight-quantity');
             }
-            if (typeof updateCartHighlight === 'function') {
-                updateCartHighlight(li, quantity);
-            }
-
-            // สร้าง HTML ของแถวสินค้า
-            // const stockInThisUnit = productUnit.stockInBaseUnits / productUnit.pricingUnit.conversionFactor; // (ตัวแปรนี้ไม่ได้ใช้ในการแสดงผล แต่มีไว้คำนวณเผื่ออนาคต)
+            const stockInThisUnit = productUnit.stockInBaseUnits / productUnit.pricingUnit.conversionFactor;
             let itemInfoHTML = `<strong>${productUnit.display}</strong>`;
-            
-            li.innerHTML = `
-                <div class="col-seq">${index + 1}</div>
-                <div class="col-name">${itemInfoHTML}</div>
-                <div class="col-qty">
-                    <input type="number" class="item-input" value="${quantity}" 
-                        onchange="POS_APP.editItemQuantity(${index}, this.value)" 
-                        onfocus="this.select()" 
-                        onkeydown="if(event.key === 'Enter') { event.preventDefault(); document.getElementById('discount-input').focus(); document.getElementById('discount-input').select(); }">
-                </div>
-                <div class="col-price">
-                    <input type="text" class="item-input" value="${pricePerUnit.toFixed(2)}" disabled>
-                </div>
-                <div class="col-total">
-                    <input type="text" class="item-input" value="${totalForItem.toFixed(2)}" 
-                        onchange="POS_APP.editItemTotal(${index}, this.value)" 
-                        onfocus="this.select()">
-                </div>
-                <div class="col-delete">
-                    <button type="button" class="delete-item-btn" onclick="POS_APP.deleteItemFromCart(${index})">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                    </button>
-                </div>
-            `;
+            li.innerHTML = `<div class="col-seq">${index + 1}</div><div class="col-name">${itemInfoHTML}</div><div class="col-qty"><input type="number" class="item-input" value="${quantity}" onchange="POS_APP.editItemQuantity(${index}, this.value)" onfocus="this.select()" onkeydown="if(event.key === 'Enter') { event.preventDefault(); document.getElementById('discount-input').focus(); document.getElementById('discount-input').select(); }"></div><div class="col-price"><input type="text" class="item-input" value="${pricePerUnit.toFixed(2)}" disabled></div><div class="col-total"><input type="text" class="item-input" value="${totalForItem.toFixed(2)}" onchange="POS_APP.editItemTotal(${index}, this.value)" onfocus="this.select()"></div><div class="col-delete"><button type="button" class="delete-item-btn" onclick="POS_APP.deleteItemFromCart(${index})"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div>`;
             cartItemsElement.appendChild(li);
         });
-
-        // อัปเดตยอดรวมท้ายบิล
         const total = subtotal - (discount || 0);
-        const subtotalEl = document.getElementById('cart-subtotal');
-        const totalEl = document.getElementById('cart-total');
-        
-        if (subtotalEl) subtotalEl.textContent = subtotal.toFixed(2);
-        if (totalEl) totalEl.textContent = total.toFixed(2);
-        
-        // ✅ [ADDED] บันทึกข้อมูลบิลปัจจุบันลง Firestore (Sync)
-        this.saveTabToFirestore(this.state.activeTabId);
+        document.getElementById('cart-subtotal').textContent = subtotal.toFixed(2);
+        document.getElementById('cart-total').textContent = total.toFixed(2);
     },
 
     editItemTotal(index, newTotalValue) {
@@ -3599,35 +3419,21 @@ const itemDetails = sale.items.map(item => {
         this.updateHistoryDisplay();
         this.updateCartDisplay();
     },
-
-addNewSaleTab(customName = '') {
-        // สร้าง ID บิลใหม่ (ใช้ timestamp + random เพื่อลดโอกาสซ้ำ)
-        const tabId = 'tab_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-        
-        // กำหนดชื่อบิล (ถ้าไม่ระบุมา ให้รันเลขลำดับต่อจากจำนวนบิลที่มี)
-        const tabCount = this.state.tabs.size + 1;
-        const tabName = customName || `บิล ${tabCount}`;
-
-        // สร้างข้อมูลเริ่มต้นของบิลลงใน State
-        this.state.tabs.set(tabId, { 
-            cart: [], 
-            discount: 0, 
-            name: tabName, 
-            isEditing: false, 
-            originalFirestoreId: null,
-            updatedAt: Date.now() // (Option) เก็บเวลาสร้างไว้ด้วย
-        });
-
-        // อัปเดตหน้าจอแถบ Tab
+    addNewSaleTab(customName = '') {
+        if (this.state.tabs.size >= 5) { this.showInfoModal("ไม่สามารถเปิดบิล", "ไม่สามารถเปิดบิลใหม่ได้เกิน 5 บิล", false);
+        return null; }
+        let tabName = customName;
+        if (!tabName) {
+            let nextSaleNumber = 1;
+            const usedNumbers = Array.from(this.state.tabs.values()).map(t => t.name ? parseInt(t.name.split(' ')[1]) : 0);
+            while(usedNumbers.includes(nextSaleNumber)) { nextSaleNumber++;
+            }
+            tabName = `บิล ${nextSaleNumber}`;
+        }
+        const tabId = 'sale-' + Date.now();
+        this.state.tabs.set(tabId, { cart: [], discount: 0, name: tabName, isEditing: false, originalFirestoreId: null });
         this.renderTabs();
-        
-        // สลับไปใช้งานบิลใหม่ทันที
         this.switchTab(tabId);
-        
-        // ✅ [ADDED] บันทึกบิลใหม่ลง Firestore (Sync)
-        // เพื่อให้บิลนี้ไปโผล่ที่เครื่องอื่นด้วยทันที
-        this.saveTabToFirestore(tabId);
-
         return tabId;
     },
     switchTab(tabId) { 
@@ -3637,44 +3443,22 @@ addNewSaleTab(customName = '') {
         this.updateCartDisplay(); 
         this.focusSearchIfReady(); 
     },
-
-closeTab(tabId, confirm = true) {
-        // ตรวจสอบว่ามี Tab นี้อยู่จริงหรือไม่
-        if (!this.state.tabs.has(tabId)) return;
-
-        const tab = this.state.tabs.get(tabId);
-
-        // ถ้าต้องยืนยัน (confirm = true) และมีสินค้าในตะกร้า ให้ถามก่อน
-        if (confirm && tab.cart.length > 0) {
-            // ใช้ confirm ของ Browser หรือ Modal ที่คุณมี
-            if (!window.confirm(`ต้องการปิดบิล "${tab.name}" หรือไม่? รายการสินค้าจะหายไป`)) {
-                return; // ถ้ากด Cancel ก็ยกเลิกการปิด
-            }
-        }
-
-        // 1. ลบข้อมูลออกจาก Memory ในเครื่องปัจจุบัน
+    closeTab(tabId, confirm = true) {
+        const tabData = this.state.tabs.get(tabId);
+        if (!tabData) return;
+        if (tabData.isEditing) { document.getElementById('edit-status').style.display = 'none'; }
+        if (confirm && tabData.cart.length > 0) { this.showDeleteConfirmModal(tabId, true);
+        return; }
         this.state.tabs.delete(tabId);
-
-        // ✅ [ADDED] 2. สั่งลบออกจาก Firestore (Sync)
-        // เพื่อให้เครื่องอื่นรู้ว่าบิลนี้ถูกยกเลิก/ปิดไปแล้ว
-        this.deleteTabFromFirestore(tabId);
-
-        // 3. จัดการการแสดงผลหลังจากปิดบิล
         if (this.state.activeTabId === tabId) {
-            // ถ้าบิลที่ปิดคือบิลที่กำลังเปิดอยู่ -> ให้สลับไปบิลอื่นที่เหลือ
-            const firstTabId = this.state.tabs.keys().next().value;
-            
-            if (firstTabId) {
-                this.switchTab(firstTabId);
+            const remainingTabs = Array.from(this.state.tabs.keys());
+            if (remainingTabs.length > 0) {
+                this.switchTab(remainingTabs[0]);
             } else {
-                // ถ้าไม่เหลือบิลค้างเลย -> สร้างใบใหม่ขึ้นมา 1 ใบ
-                // (ฟังก์ชัน addNewSaleTab ที่แก้ไปแล้ว จะจัดการ Sync สร้างใหม่บน Cloud ให้เอง)
                 this.addNewSaleTab();
             }
-        } else {
-            // ถ้าปิดบิลอื่นที่ไม่ได้ดูอยู่ -> แค่อัปเดตแถบด้านบน
-            this.renderTabs();
         }
+        this.renderTabs();
     },
     renderTabs() { 
         const tabsContainer = document.getElementById('cart-tabs');
